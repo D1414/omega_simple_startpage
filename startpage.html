@@ -1,0 +1,132 @@
+<!-- its a simple browser startpage, without a search, just clock -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Startpage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #282a36;
+        }
+        .clock {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: white; 
+        }
+        .weather, .location {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: white; 
+        }
+        .settings-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            height: 30px;
+        }
+        .settings-form {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background-color: white;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .settings-form input {
+            padding: 5px;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        .settings-form button {
+            padding: 5px;
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body>
+    <img src="./ressources/settings-icon.png" class="settings-icon" id="settings-icon" alt="Settings Icon">
+    <div class="settings-form" id="settings-form">
+        <input type="text" id="bg-color" placeholder="Enter background color (hex)">
+        <input type="text" id="location-manual" placeholder="Enter your city">
+        <button onclick="applySettings()">Apply</button>
+    </div>
+    <div class="clock" id="clock">Loading time...</div>
+    <div class="weather" id="weather">Loading weather...</div>
+    <div class="location" id="location">Loading location...</div>
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        async function updateWeather(lat, lon) {
+            try {
+                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                const data = await response.json();
+                const weather = data.current_weather;
+                document.getElementById('weather').textContent = `Temp: ${weather.temperature}°C`;
+            } catch (error) {
+                document.getElementById('weather').textContent = 'Failed to load weather data';
+            }
+        }
+
+        async function updateLocation(city) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?city=${city}&format=json`);
+                const data = await response.json();
+                if (data.length > 0) {
+                    const lat = data[0].lat;
+                    const lon = data[0].lon;
+                    const location = data[0].display_name;
+                    document.getElementById('location').textContent = location;
+                    updateWeather(lat, lon);
+                } else {
+                    document.getElementById('location').textContent = 'Location not found';
+                }
+            } catch (error) {
+                document.getElementById('location').textContent = 'Failed to load location';
+            }
+        }
+
+        document.getElementById('settings-icon').addEventListener('click', () => {
+            const settingsForm = document.getElementById('settings-form');
+            settingsForm.style.display = settingsForm.style.display === 'none' ? 'flex' : 'none';
+        });
+
+        function applySettings() {
+            const bgColor = document.getElementById('bg-color').value;
+            const city = document.getElementById('location-manual').value;
+
+            if (bgColor) {
+                document.body.style.backgroundColor = bgColor;
+            }
+
+            if (city) {
+                updateLocation(city);
+            }
+
+            document.getElementById('settings-form').style.display = 'none';
+        }
+
+        updateTime();
+        setInterval(updateTime, 1000);
+        updateLocation('Gelsenkirchen'); // Default city
+    </script>
+</body>
+</html>
